@@ -1,21 +1,25 @@
+// This is your standard setup
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./database.db"
+  url      = "file:./dev.db"
 }
 
-model Bundle {
-  id        Int      @id @default(autoincrement())
-model YourModelName {
-  id    Int     @id @default(autoincrement())
-  shop  String
+// This is your main Session model
+model Session {
+  id      String    @id
+  shop    String
+  state   String
+  isOnline Boolean   @default(false)
+  scope   String?
+  expires DateTime?
+  accessToken String
+  userId  BigInt?
 
-  @@index([shop]) 
+  @@index([shop])
 }
-  title     String
-  products  String
-  createdAt DateTime @default(now())
-}
+
+// Add any other models (like products or titles) BELOW the closing "}" of the Session model
