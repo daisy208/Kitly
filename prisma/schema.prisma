@@ -9,7 +9,12 @@ datasource db {
 
 model Bundle {
   id        Int      @id @default(autoincrement())
-  shop      String   @index
+model YourModelName {
+  id    Int     @id @default(autoincrement())
+  shop  String
+
+  @@index([shop]) 
+}
   title     String
   products  String
   createdAt DateTime @default(now())
