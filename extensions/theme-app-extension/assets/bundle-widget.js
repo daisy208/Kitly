@@ -175,3 +175,59 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Render bundles here
 });
+async function addBundleToCart(products) {
+  const items = products.map(p => ({
+    id: p.variantId,
+    quantity: p.quantity || 1
+  }));
+
+  await fetch("/cart/add.js", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items })
+  });
+
+  window.location.href = "/cart";
+}
+function renderVariants(product) {
+  return `
+    <select data-product="${product.id}">
+      ${product.variants.map(v => `
+        <option value="${v.id}">
+          ${v.title}
+        </option>
+      `).join("")}
+    </select>
+  `;
+}
+async function validateInventory(variantId, quantity) {
+  const res = await fetch(`/variants/${variantId}.js`);
+  const variant = await res.json();
+
+  return variant.available && variant.inventory_quantity >= quantity;
+}
+const shopRecord = await prisma.shop.findUnique({
+  where: { shopDomain: req.shop.shopDomain }
+});
+
+const client = new shopify.clients.Rest({
+  session: {
+    shop: shopRecord.shopDomain,
+    accessToken: shopRecord.accessToken
+  }
+});
+
+await client.post({
+  path: "price_rules",
+  data: {
+    price_rule: {
+      title: `Bundle-${name}`,
+      target_type: "line_item",
+      target_selection: "all",
+      allocation_method: "across",
+      value_type: "percentage",
+      value: `-${discountValue}`,
+      customer_selection: "all"
+    }
+  }
+});
