@@ -148,3 +148,80 @@ app.get("/public/bundles", async (req, res) => {
 app.listen(3000, () => {
   console.log("Server running on port 3000");
 });
+app.get("/api/billing", verifyShop, async (req, res) => {
+  const shop = req.shop.shopDomain;
+
+  const returnUrl = `${process.env.HOST}/billing/callback`;
+
+  const client = new shopify.clients.Rest({
+    session: {
+      shop,
+      accessToken: req.shop.accessToken
+    }
+  });
+
+  const response = await client.post({
+    path: "recurring_application_charges",
+    data: {
+      recurring_application_charge: {
+        name: "Pro Plan",
+        price: 9,
+        return_url: returnUrl,
+        trial_days: 14
+      }
+    }
+  });
+
+  res.json(response.body.recurring_application_charge);
+});
+async function checkActiveSubscription(req, res, next) {
+  const client = new shopify.clients.Rest({
+    session: {
+      shop: req.shop.shopDomain,
+      accessToken: req.shop.accessToken
+    }
+  });
+
+  const charges = await client.get({
+    path: "recurring_application_charges"
+  });
+
+  const active = charges.body.recurring_application_charges.find(
+    c => c.status === "active"
+  );
+
+  if (!active) {
+    return res.status(402).json({ error: "Subscription required" });
+  }
+
+  next();
+}
+app.post("/api/bundles", verifyShop, checkActiveSubscription, async (...)
+  app.post("/webhooks/app/uninstalled", async (req, res) => {
+  const shop = req.headers["x-shopify-shop-domain"];
+
+  await prisma.bundle.deleteMany({
+    where: { shopDomain: shop }
+  });
+
+  await prisma.shop.delete({
+    where: { shopDomain: shop }
+  });
+
+  res.status(200).send("OK");
+});
+app.patch("/api/bundles/:id/status", verifyShop, async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  const updated = await prisma.bundle.update({
+    where: { id },
+    data: { status }
+  });
+
+  res.json(updated);
+});
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ error: "Internal Server Error" });
+});
